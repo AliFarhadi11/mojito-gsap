@@ -16,7 +16,7 @@ const Art = () => {
         trigger: "#art",
         start,
         end: "bottom center",
-        scrub: 1.5,
+        scrub: 1,
         pin: true,
       },
     });
@@ -24,7 +24,7 @@ const Art = () => {
     maskTimeline
       .to(".will-fade", { opacity: 0, stagger: 0.2, ease: "power1.inOut" })
       .to(".masked-img", {
-        scale: 1.3,
+        scale: 1.5,
         maskPosition: "center",
         maskSize: "400%",
         duration: 1,
