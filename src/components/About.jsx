@@ -1,16 +1,16 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { Flip, SplitText, ScrollTrigger } from "gsap/all";
+import { Flip } from "gsap/Flip";
+import { SplitText } from "gsap/SplitText";
 import { useRef, useState } from "react";
-
-gsap.registerPlugin(Flip, SplitText, ScrollTrigger);
+import { reduceMotion } from "../lib/motion";
 
 const images = [
-  "/images/abt1.png",
-  "/images/abt2.png",
-  "/images/abt5.png",
-  "/images/abt3.png",
-  "/images/abt4.png",
+  "/images/abt1.webp",
+  "/images/abt2.webp",
+  "/images/abt5.webp",
+  "/images/abt3.webp",
+  "/images/abt4.webp",
 ];
 
 const About = () => {
@@ -18,63 +18,84 @@ const About = () => {
   const [activeImage, setActiveImage] = useState(0); // Default first image active
   const flipState = useRef(null); // Ref to store the state before re-render
 
-  // 1. Intro Animation (runs once on mount)
+  // 1. Intro Animation (runs once, when the section scrolls in)
   useGSAP(
     () => {
-      const titleSplit = new SplitText("#about h2", { type: "words" });
+      if (reduceMotion()) return;
 
-      const scrollTimeline = gsap.timeline({
-        scrollTrigger: {
-          trigger: "#about",
-          start: "top center",
-        },
+      // mask clips each word so it rises out of its own line instead of fading over others;
+      // autoSplit rebuilds the timeline if the font loads after the first split
+      SplitText.create("h2", {
+        type: "words",
+        mask: "words",
+        autoSplit: true,
+        onSplit: (self) => buildIntro(self.words),
       });
 
-      scrollTimeline
-        .from(titleSplit.words, {
-          
-          duration: 1,
-          yPercent: 100,
-          ease: "expo.out",
-          stagger: 0.02,
-        })
-        .from(
-          ".content div, .gallery-item", // Updated selector to match new class names
-          {
-            opacity: 0,
+      function buildIntro(words) {
+        return gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: containerRef.current,
+              start: "top center",
+            },
+          })
+          .from(words, {
             duration: 1,
-            ease: "power1.inOut",
-            stagger: 0.04,
-          },
-          "-=0.5"
-        );
+            yPercent: 100,
+            ease: "expo.out",
+            stagger: 0.02,
+          })
+          .from(
+            ".badge, .sub-content > *",
+            {
+              opacity: 0,
+              y: 20,
+              duration: 0.8,
+              ease: "power2.out",
+              stagger: 0.08,
+            },
+            "-=0.6",
+          )
+          .from(
+            ".gallery-item",
+            {
+              opacity: 0,
+              y: 40,
+              duration: 0.9,
+              ease: "power3.out",
+              stagger: 0.06,
+            },
+            "-=0.5",
+          );
+      }
     },
-    { scope: containerRef }
+    { scope: containerRef },
   );
 
   // 2. FLIP Animation (runs when activeImage changes)
-  useGSAP(() => {
-    // Only run if we have a captured state to animate from
-    if (!flipState.current) return;
+  useGSAP(
+    () => {
+      // Only run if we have a captured state to animate from (reduced motion: just let the grid change)
+      if (!flipState.current || reduceMotion()) return;
 
-    Flip.from(flipState.current, {
-      targets: ".gallery-item",
-      duration: 0.6,
-      ease: "power2.inOut",
-      absolute: true, // Crucial for smooth grid animations
-      zIndex: 10, // Ensure moving item is on top
-      onEnter: (elements) => gsap.fromTo(elements, { opacity: 0 }, { opacity: 1 }),
-      onLeave: (elements) => gsap.to(elements, { opacity: 0 }),
-    });
-  }, [activeImage]); // Dependency: runs every time activeImage updates
+      // a click mid-flip captures the in-between state and Flip kills the old run
+      Flip.from(flipState.current, {
+        targets: ".gallery-item",
+        duration: 0.7,
+        ease: "power3.inOut",
+        absolute: true, // Crucial for smooth grid animations
+        zIndex: 10, // Ensure moving item is on top
+      });
+    },
+    { dependencies: [activeImage], scope: containerRef },
+  );
 
   const handleImageClick = (index) => {
     if (index === activeImage) return;
 
     // 1. Capture the current state of the grid items
-    // (We use the scoped selector from containerRef to be safe)
-    const items = gsap.utils.toArray(".gallery-item", containerRef.current);
-    flipState.current = Flip.getState(items);
+    flipState.current = Flip.getState(gsap.utils.toArray(".gallery-item", containerRef.current));
 
     // 2. Update state (this triggers a React re-render)
     setActiveImage(index);
@@ -87,15 +108,15 @@ const About = () => {
           <div className="md:col-span-8">
             <p className="badge">Best Cocktails</p>
             <h2>
-              Where every detail maters <span className="text-white">-</span>
-              From muddle to garnish
+              Where every detail matters <span className="text-white">-</span>
+              from muddle to garnish
             </h2>
           </div>
 
           <div className="sub-content">
             <p>
-              Every cocktail we server is a reflection of our obsession with detail - from the first muddle to
-              the final garnish. That care is what turns a simple drink into something truly memorable
+              Every cocktail we serve is a reflection of our obsession with detail - from the first muddle to the
+              final garnish. That care is what turns a simple drink into something truly memorable
             </p>
 
             <div>
@@ -109,17 +130,23 @@ const About = () => {
       </div>
 
       {/* Gallery Grid */}
-      <div className="grid grid-cols-12 h-86 xl:h-[80vh] gap-3 group">
-        {images.map((src, index) => (
-          <div
-            key={index}
-            onClick={() => handleImageClick(index)}
-            className={`gallery-item relative overflow-hidden rounded-xl cursor-pointer transition-colors 
-              ${index === activeImage ? "col-span-8" : "col-span-1"}`}>
-            <div className="noisy" />
-            <img src={src} className="size-full object-cover object-top" alt={`grid-img-${index}`} />
-          </div>
-        ))}
+      <div className="gallery">
+        {images.map((src, index) => {
+          const isActive = index === activeImage;
+
+          return (
+            <button
+              key={src}
+              type="button"
+              onClick={() => handleImageClick(index)}
+              aria-label={`Show cocktail photo ${index + 1}`}
+              aria-pressed={isActive}
+              className={`gallery-item ${isActive ? "is-active col-span-8" : "col-span-1"}`}>
+              <img src={src} alt="" loading="lazy" decoding="async" draggable={false} />
+              <div className="noisy" />
+            </button>
+          );
+        })}
       </div>
     </div>
   );

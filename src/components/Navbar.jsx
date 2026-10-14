@@ -1,36 +1,26 @@
-import gsap from "gsap";
+import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { navLinks } from "../../constants/index.js";
 
 const Navbar = () => {
-  useGSAP(() => {
-    const navTween = gsap.timeline({
-      scrollTrigger: {
-        trigger: "nav",
-        start: "bottom top",
-        end: "top 0%",
-        scrub: true,
-      },
-    });
+  const navRef = useRef(null);
 
-    navTween.fromTo(
-      "nav",
-      { backgroundColor: "transparent" },
-      {
-        backgroundColor: "#00000050",
-        backdropFilter: "blur(10px)",
-        duration: 1,
-        ease: "power1.inOut",
-      }
-    );
-  });
+  // toggle a class and let CSS transition it, instead of scrubbing backdrop-filter every scroll frame
+  useGSAP(() => {
+    ScrollTrigger.create({
+      start: 10,
+      end: "max",
+      toggleClass: { targets: navRef.current, className: "is-scrolled" },
+    });
+  }, []);
 
   return (
-    <nav>
+    <nav ref={navRef}>
       <div>
-        <a href="#home" className="flex items-center gap-2">
-          <img src="/images/logo.png" alt="logo" />
+        <a href="#hero" className="flex items-center gap-2">
+          <img src="/images/logo.png" alt="" width="32" height="32" />
           <p>Velvet Pour</p>
         </a>
 

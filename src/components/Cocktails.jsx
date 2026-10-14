@@ -1,69 +1,72 @@
+import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { cocktailLists, mockTailLists } from "../../constants";
 import gsap from "gsap";
+import { reduceMotion } from "../lib/motion";
+
+const DrinkList = ({ title, className, items }) => (
+  <div className={className}>
+    <h2>{title}</h2>
+
+    <ul>
+      {items.map(({ name, country, detail, price }) => (
+        <li key={name}>
+          <div className="md:me-28">
+            <h3>{name}</h3>
+            <p>
+              {country} | {detail}
+            </p>
+            <span>- {price}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
 
 const Cocktails = () => {
-  useGSAP(() => {
-    const paralaxTimeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: "#cocktails",
-        start: "top 30%",
-        end: "bottom 80%",
-        scrub: true,
-      },
-    });
+  const sectionRef = useRef(null);
 
-    paralaxTimeline
-      .from("#c-left-leaf", {
-        x: -100,
-        y: 100,
-      })
-      .from("#c-right-leaf", {
-        x: 100,
-        y: 100,
+  useGSAP(
+    () => {
+      if (reduceMotion()) return;
+
+      // both leaves drift in together over the whole section
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 30%",
+            end: "bottom 80%",
+            scrub: true,
+          },
+        })
+        .from("#c-left-leaf", { x: -100, y: 100 }, 0)
+        .from("#c-right-leaf", { x: 100, y: 100 }, 0);
+
+      gsap.from(".list h2, .list li", {
+        opacity: 0,
+        y: 30,
+        duration: 0.8,
+        ease: "power2.out",
+        stagger: 0.06,
+        scrollTrigger: {
+          trigger: ".list",
+          start: "top 75%",
+        },
       });
-  });
+    },
+    { scope: sectionRef },
+  );
 
   return (
-    <section id="cocktails" className="noisy">
-      <img src="/images/cocktail-left-leaf.png" alt="left-leaf" id="c-left-leaf" />
-      <img src="/images/cocktail-right-leaf.png" alt="right-leaf" id="c-right-leaf" />
+    <section id="cocktails" ref={sectionRef} className="noisy">
+      <img src="/images/cocktail-left-leaf.webp" alt="" id="c-left-leaf" loading="lazy" />
+      <img src="/images/cocktail-right-leaf.webp" alt="" id="c-right-leaf" loading="lazy" />
 
       <div className="list">
-        <div className="popular">
-          <h2>Most popular cocktails:</h2>
-
-          <ul>
-            {cocktailLists.map(({ name, country, detail, price }) => (
-              <li key={name}>
-                <div className="md:me-28">
-                  <h3>{name}</h3>
-                  <p>
-                    {country} | {detail}
-                  </p>
-                  <span>- {price}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="loved">
-          <h2>Most loved mocktails:</h2>
-
-          <ul>
-            {mockTailLists.map(({ name, country, detail, price }) => (
-              <li key={name}>
-                <div className="me-28">
-                  <h3>{name}</h3>
-                  <p>
-                    {country} | {detail}
-                  </p>
-                  <span>- {price}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <DrinkList title="Most popular cocktails:" className="popular" items={cocktailLists} />
+        <DrinkList title="Most loved mocktails:" className="loved" items={mockTailLists} />
       </div>
     </section>
   );

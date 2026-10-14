@@ -1,80 +1,96 @@
+import { useRef } from "react";
 import gsap from "gsap";
-import { useMediaQuery } from "react-responsive";
 import { useGSAP } from "@gsap/react";
 import { featureLists, goodLists } from "../../constants/index.js";
 
+const CheckList = ({ items, side }) => (
+  <ul className={`art-list is-${side}`}>
+    {items.map((feature) => (
+      <li key={feature}>
+        <img src="/images/check.png" alt="" width="16" height="16" />
+        <p>{feature}</p>
+      </li>
+    ))}
+  </ul>
+);
+
 const Art = () => {
-  const isMobile = useMediaQuery({ maxWidth: 767 });
+  const sectionRef = useRef(null);
 
-  const maskedContentY = isMobile ? -150 : 50;
+  useGSAP(
+    () => {
+      const mm = gsap.matchMedia();
 
-  useGSAP(() => {
-    const start = isMobile ? "top 20%" : "top top";
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        // timeline units: intro fades (0-2), glass grows (1-6), photo + copy land (4-8), short hold
+        gsap
+          .timeline({
+            defaults: { ease: "power1.inOut" },
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: "top top",
+              end: "+=220%",
+              scrub: 1,
+              pin: true,
+              anticipatePin: 1,
+              invalidateOnRefresh: true,
+            },
+          })
+          .to(".art-title", { yPercent: -40, opacity: 0, duration: 2 }, 0)
+          .to(".art-list.is-left", { x: -60, opacity: 0, duration: 1.6 }, 0.2)
+          .to(".art-list.is-right", { x: 60, opacity: 0, duration: 1.6 }, 0.2)
+          .to(".art-glow", { opacity: 0, scale: 1.4, duration: 3 }, 1)
+          // push through the glass: the silhouette grows while the photo zooms in slightly
+          .to(
+            ".art-masked",
+            { maskSize: "auto 420%", maskPosition: "50% 50%", scale: 1.15, duration: 5, ease: "power2.in" },
+            1,
+          )
+          // the silhouette never fully covers a tall screen, so the unmasked photo fades in and settles
+          .fromTo(".art-full", { opacity: 0, scale: 1.15 }, { opacity: 1, scale: 1, duration: 2.5 }, 4.5)
+          .to(".art-shade", { opacity: 1, duration: 1.5 }, 5.5)
+          .from(".art-copy > *", { opacity: 0, y: 40, duration: 1.2, stagger: 0.35, ease: "power2.out" }, 6)
+          // hold the finished frame for a moment before the pin releases
+          .to({}, { duration: 1 });
+      });
 
-    const maskTimeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: "#art",
-        start,
-        end: "bottom center",
-        scrub: 1,
-        pin: true,
-      },
-    });
-
-    maskTimeline
-      .to(".will-fade", { opacity: 0, stagger: 0.2, ease: "power1.inOut" })
-      .to(".masked-img", {
-        scale: 1.5,
-        maskPosition: "center",
-        maskSize: "400%",
-        duration: 1,
-        ease: "power1.inOut ",
-      })
-      .to("#masked-content", { opacity: 1, y: maskedContentY, duration: 1, ease: "power1.inOut" });
-  });
+      // reduced motion: no pin, just show the finished frame
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(".art-title, .art-list, .art-glow, .art-masked", { opacity: 0 });
+        gsap.set(".art-full, .art-shade", { opacity: 1 });
+      });
+    },
+    { scope: sectionRef },
+  );
 
   return (
-    <div id="art">
-      <div className="container mx-auto h-full pt-5 md:pt-20">
-        <h2 className="will-fade">The ART</h2>
+    <section id="art" ref={sectionRef} aria-labelledby="art-heading">
+      <div className="art-glow" />
+      <h2 className="art-title">The ART</h2>
 
-        <div className="content">
-          <ul className="space-y-4 will-fade">
-            {goodLists.map((feature, index) => (
-              <li key={index} className="flex items-center gap-2">
-                <img src="/images/check.png" alt="check" />
-                <p>{feature}</p>
-              </li>
-            ))}
-          </ul>
-
-          <div className="cocktail-img">
-            <img
-              src="/images/under-img.jpg"
-              alt="cocktail"
-              className="abs-center masked-img size-full object-contain"
-            />
-          </div>
-
-          <ul className="space-y-4 will-fade">
-            {featureLists.map((feature, index) => (
-              <li key={index} className="flex items-center justify-start gap-2">
-                <img src="/images/check.png" alt="check" />
-                <p className="md:w-fit w-60">{feature}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="masked-container">
-          <h2 className="will-fade">Sip-Worthy Perfection</h2>
-          <div id="masked-content">
-            <h3>Made with Craft, Poured with Passion</h3>
-            <p>This isn’t just a drink. It’s a carefully crafted moment made just for you.</p>
-          </div>
-        </div>
+      <div className="art-media">
+        <img src="/images/under-img.webp" alt="" className="art-full" loading="lazy" decoding="async" />
+        <img
+          src="/images/under-img.webp"
+          alt="A bartender pouring a cocktail"
+          className="art-masked"
+          loading="lazy"
+          decoding="async"
+        />
       </div>
-    </div>
+
+      <div className="noisy pointer-events-none" />
+      <div className="art-shade" />
+
+      <CheckList items={goodLists} side="left" />
+      <CheckList items={featureLists} side="right" />
+
+      <div className="art-copy">
+        <h2 id="art-heading">Sip-Worthy Perfection</h2>
+        <h3>Made with Craft, Poured with Passion</h3>
+        <p>This isn’t just a drink. It’s a carefully crafted moment made just for you.</p>
+      </div>
+    </section>
   );
 };
 export default Art;

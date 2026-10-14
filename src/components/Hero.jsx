@@ -1,100 +1,135 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { ScrollTrigger, SplitText } from "gsap/all";
+import { SplitText } from "gsap/SplitText";
 import { useRef } from "react";
-// import { useMediaQuery } from "react-responsive";
+import { reduceMotion } from "../lib/motion";
+
+const playIntro = () => {
+  // autoSplit re-splits once the web fonts arrive, and onSplit hands the
+  // new elements to a fresh tween that resumes at the same progress
+  SplitText.create(".title", {
+    type: "chars",
+    charsClass: "text-gradient",
+    autoSplit: true,
+    onSplit: (self) =>
+      gsap.from(self.chars, {
+        opacity: 0,
+        yPercent: 100,
+        duration: 1.8,
+        ease: "expo.out",
+        stagger: 0.06,
+      }),
+  });
+
+  SplitText.create(".subtitle", {
+    type: "lines",
+    mask: "lines",
+    autoSplit: true,
+    onSplit: (self) =>
+      gsap.from(self.lines, {
+        yPercent: 100,
+        duration: 1.8,
+        ease: "expo.out",
+        stagger: 0.06,
+        delay: 1,
+      }),
+  });
+
+  gsap.from(".tagline, .view-cocktails a", {
+    opacity: 0,
+    y: 16,
+    duration: 1,
+    ease: "power2.out",
+    stagger: 0.1,
+    delay: 1.4,
+  });
+
+  // leaf parallax
+  gsap
+    .timeline({
+      scrollTrigger: {
+        trigger: "#hero",
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+      },
+    })
+    .to(".right-leaf", { y: 200 }, 0)
+    .to(".left-leaf", { y: -200 }, 0);
+};
 
 const Hero = () => {
-  const videoRef = useRef();
+  const heroRef = useRef(null);
+  const videoRef = useRef(null);
 
-  useGSAP(() => {
-    const heroSplit = new SplitText(".title", { type: "chars, words" });
-    const paragraphSplit = new SplitText(".subtitle", { type: "lines" });
+  useGSAP(
+    () => {
+      // decorative motion only; the video scrub below is driven by the user's own scrolling
+      if (!reduceMotion()) playIntro();
 
-    heroSplit.chars.forEach((char) => char.classList.add("text-gradient"));
+      // video scrub: the .video track spans hero + cocktails and its frame is
+      // CSS-sticky, so scroll progress through the track maps to video time
+      const video = videoRef.current;
+      const scrub = { progress: 0 };
 
-    gsap.from(heroSplit.chars, {
-      opacity: 0,
-      yPercent: 100,
-      duration: 1.8,
-      ease: "expo.out",
-      stagger: 0.06,
-    });
+      const seek = () => {
+        if (!video.duration) return;
+        const time = scrub.progress * video.duration;
+        // skip redundant seeks: each one makes the decoder fetch a frame
+        if (Math.abs(video.currentTime - time) > 0.01) video.currentTime = time;
+      };
 
-    gsap.from(paragraphSplit.lines, {
-      opacity: 0,
-      yPercent: 100,
-      duration: 1.8,
-      ease: "expo.out",
-      stagger: 0.06,
-      delay: 1,
-    });
-
-    // leaf animation
-    gsap
-      .timeline({
+      gsap.to(scrub, {
+        progress: 1,
+        ease: "none",
+        onUpdate: seek,
         scrollTrigger: {
-          trigger: "#hero",
+          trigger: ".video",
           start: "top top",
-          end: "bottom top",
-          scrub: true,
-        },
-      })
-      .to(".right-leaf", { y: 200 }, 0)
-      .to(".left-leaf", { y: -200 }, 0);
-
-    // 🎯 Use matchMedia to handle different breakpoints
-    ScrollTrigger.matchMedia({
-      "(max-width: 767px)": function () {
-        createVideoTimeline("top 50%", "165% top");
-      },
-      "(min-width: 768px)": function () {
-        createVideoTimeline("center 60%", "bottom top");
-      },
-    });
-
-    function createVideoTimeline(startValue, endValue) {
-      const videoTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: "video",
-          start: startValue,
-          end: endValue,
-          scrub: true,
-          pin: true,
-          invalidateOnRefresh: true,
+          end: "bottom bottom",
+          // a little lag smooths out the frame jumps from mouse-wheel steps
+          scrub: 0.5,
         },
       });
 
-      const onLoaded = () => {
-        if (!videoRef.current) return;
-        videoTl.to(videoRef.current, {
-          currentTime: videoRef.current.duration,
-          ease: "none",
-        });
+      // iOS Safari won't load or paint frames until the video has played once.
+      // Muted autoplay usually works; Low Power Mode blocks it until a tap.
+      const unlockEvents = ["touchend", "click"];
+      const removeUnlock = () => unlockEvents.forEach((e) => window.removeEventListener(e, prime));
+      function prime() {
+        video.play().then(
+          () => {
+            video.pause();
+            seek();
+            removeUnlock();
+          },
+          () => unlockEvents.forEach((e) => window.addEventListener(e, prime, { once: true, passive: true })),
+        );
+      }
+
+      video.addEventListener("loadedmetadata", seek);
+      prime();
+
+      return () => {
+        video.removeEventListener("loadedmetadata", seek);
+        removeUnlock();
       };
+    },
+    { scope: heroRef },
+  );
 
-      if (videoRef.current && videoRef.current.readyState >= 1) onLoaded();
-      else videoRef.current?.addEventListener("loadedmetadata", onLoaded);
-    }
-
-    // cleanup
-    return () => {
-      ScrollTrigger.getAll().forEach((st) => st.kill());
-      gsap.killTweensOf(videoRef.current);
-    };
-  }, []);
   return (
-    <>
+    <div ref={heroRef} className="contents">
       <section id="hero" className="noisy">
         <h1 className="title">MOJITO</h1>
 
-        <img src="/images/hero-left-leaf.png" alt="left-leaf" className="left-leaf" />
-        <img src="/images/hero-right-leaf.png" alt="right-leaf" className="right-leaf" />
+        <img src="/images/hero-left-leaf.webp" alt="" className="left-leaf" />
+        <img src="/images/hero-right-leaf.webp" alt="" className="right-leaf" />
 
         <div className="body">
           <div className="content">
             <div className="space-y-5 hidden md:block">
-              <p>Cool. Crisp. Classic.</p>
+              <p className="tagline">Cool. Crisp. Classic.</p>
               <p className="subtitle">
                 Sip the Spirit <br /> of Summer
               </p>
@@ -111,10 +146,20 @@ const Hero = () => {
         </div>
       </section>
 
-      <div className="video absolute inset-0">
-        <video ref={videoRef} src="/videos/output.mp4" muted playsInline preload="auto" />
+      <div className="video">
+        <div className="video-frame">
+          <video
+            ref={videoRef}
+            src="/videos/output.mp4"
+            poster="/videos/poster.webp"
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+          />
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 

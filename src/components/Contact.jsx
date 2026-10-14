@@ -1,51 +1,68 @@
+import { useRef } from "react";
 import { openingHours, socials } from "../../constants/index.js";
 import { useGSAP } from "@gsap/react";
-import { SplitText } from "gsap/all";
+import { SplitText } from "gsap/SplitText";
 import gsap from "gsap";
+import { reduceMotion } from "../lib/motion";
 
 const Contact = () => {
-  useGSAP(() => {
-    const titleSplit = SplitText.create("#contact h2", { type: "words" });
+  const footerRef = useRef(null);
 
-    const timeline = gsap.timeline({
-      scrollTrigger: {
-        trigger: "#contact",
-        start: "top center",
-      },
-      ease: "power1.inOut",
-    });
+  useGSAP(
+    () => {
+      if (reduceMotion()) return;
 
-    timeline
-      .from(titleSplit.words, {
-        opacity: 0,
-        yPercent: 100,
-        stagger: 0.02,
-      })
-      .from("#contact h3, #contact p", {
-        opacity: 0,
-        yPercent: 100,
-        stagger: 0.02,
-      })
-      .to("#f-right-leaf", {
-        y: "-50",
-        duration: 1,
-        ease: "power1.inOut",
-      })
-      .to(
-        "#f-left-leaf",
-        {
-          y: "-50",
-          duration: 1,
-          ease: "power1.inOut",
-        },
-        "<"
-      );
-  });
+      SplitText.create("h2", {
+        type: "words",
+        mask: "words",
+        autoSplit: true,
+        onSplit: (self) => buildIntro(self.words),
+      });
+
+      function buildIntro(words) {
+        return gsap
+          .timeline({
+            scrollTrigger: {
+              trigger: footerRef.current,
+              start: "top center",
+            },
+            defaults: { ease: "power2.out" },
+          })
+          .from(words, {
+            yPercent: 100,
+            duration: 1,
+            ease: "expo.out",
+            stagger: 0.02,
+          })
+          .from(
+            ".content > div",
+            {
+              opacity: 0,
+              y: 30,
+              duration: 0.8,
+              stagger: 0.1,
+            },
+            "-=0.6",
+          )
+          .to(
+            "#f-right-leaf, #f-left-leaf",
+            {
+              y: -50,
+              duration: 1.2,
+              ease: "power1.inOut",
+            },
+            "<",
+          );
+      }
+    },
+    { scope: footerRef },
+  );
 
   return (
-    <footer id="contact">
-      <img src="/images/footer-right-leaf.png" alt="leaf-right" id="f-right-leaf" />
-      <img src="/images/footer-left-leaf.png" alt="leaf-left" id="f-left-leaf" />
+    <footer id="contact" ref={footerRef}>
+      <div className="noisy pointer-events-none" />
+      <img src="/images/footer-right-leaf.webp" alt="" id="f-right-leaf" loading="lazy" />
+      <img src="/images/footer-left-leaf.webp" alt="" id="f-left-leaf" loading="lazy" />
 
       <div className="content">
         <h2>Where to Find Us</h2>
@@ -80,8 +97,9 @@ const Contact = () => {
                 href={social.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={social.name}>
-                <img src={social.icon} />
+                aria-label={social.name}
+                className="transition-transform duration-300 hover:-translate-y-1">
+                <img src={social.icon} alt="" width="30" height="30" loading="lazy" />
               </a>
             ))}
           </div>
