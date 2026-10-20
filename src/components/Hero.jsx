@@ -2,7 +2,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
 import { useRef } from "react";
-import { reduceMotion } from "../lib/motion";
+import { parallax, reduceMotion } from "../lib/motion";
 
 const playIntro = () => {
   // autoSplit re-splits once the web fonts arrive, and onSplit hands the
@@ -43,29 +43,18 @@ const playIntro = () => {
     stagger: 0.1,
     delay: 1.4,
   });
-
-  // leaf parallax
-  gsap
-    .timeline({
-      scrollTrigger: {
-        trigger: "#hero",
-        start: "top top",
-        end: "bottom top",
-        scrub: true,
-      },
-    })
-    .to(".right-leaf", { y: 200 }, 0)
-    .to(".left-leaf", { y: -200 }, 0);
 };
 
 const Hero = () => {
   const heroRef = useRef(null);
+  const sectionRef = useRef(null);
   const videoRef = useRef(null);
 
   useGSAP(
     () => {
       // decorative motion only; the video scrub below is driven by the user's own scrolling
       if (!reduceMotion()) playIntro();
+      parallax(sectionRef.current);
 
       // video scrub: the .video track spans hero + cocktails and its frame is
       // CSS-sticky, so scroll progress through the track maps to video time
@@ -87,8 +76,21 @@ const Hero = () => {
           trigger: ".video",
           start: "top top",
           end: "bottom bottom",
-          // a little lag smooths out the frame jumps from mouse-wheel steps
-          scrub: 0.5,
+          // Lenis already eases the scroll, so follow it directly
+          scrub: true,
+        },
+      });
+
+      // when the track ends the frame scrolls up with cocktails; fade it out instead of
+      // letting the clip's edge slide up the screen
+      gsap.to(".video-frame", {
+        opacity: 0,
+        ease: "none",
+        scrollTrigger: {
+          trigger: ".video", // the track ends where cocktails ends
+          start: "bottom bottom",
+          end: "bottom 45%",
+          scrub: true,
         },
       });
 
@@ -120,11 +122,11 @@ const Hero = () => {
 
   return (
     <div ref={heroRef} className="contents">
-      <section id="hero" className="noisy">
+      <section id="hero" ref={sectionRef}>
         <h1 className="title">MOJITO</h1>
 
-        <img src="/images/hero-left-leaf.webp" alt="" className="left-leaf" />
-        <img src="/images/hero-right-leaf.webp" alt="" className="right-leaf" />
+        <img src="/images/hero-left-leaf.webp" alt="" className="left-leaf" data-speed="0.4" data-rotate="8" />
+        <img src="/images/hero-right-leaf.webp" alt="" className="right-leaf" data-speed="-0.3" data-rotate="-6" />
 
         <div className="body">
           <div className="content">

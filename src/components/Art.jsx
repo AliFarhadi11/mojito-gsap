@@ -30,7 +30,7 @@ const Art = () => {
               trigger: sectionRef.current,
               start: "top top",
               end: "+=220%",
-              scrub: 1,
+              scrub: 0.6,
               pin: true,
               anticipatePin: 1,
               invalidateOnRefresh: true,
@@ -79,7 +79,6 @@ const Art = () => {
         />
       </div>
 
-      <div className="noisy pointer-events-none" />
       <div className="art-shade" />
 
       <CheckList items={goodLists} side="left" />

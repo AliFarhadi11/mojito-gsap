@@ -3,7 +3,7 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Flip } from "gsap/Flip";
 import { allCocktails } from "../../constants";
-import { reduceMotion } from "../lib/motion";
+import { parallax, reduceMotion } from "../lib/motion";
 
 const totalCocktails = allCocktails.length;
 
@@ -29,19 +29,8 @@ const Menu = () => {
   // leaf parallax + idle float of the glass (paused while the section is off screen)
   useGSAP(
     () => {
+      parallax(sectionRef.current);
       if (reduceMotion()) return;
-
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: true,
-          },
-        })
-        .fromTo("#m-left-leaf", { y: 60 }, { y: -60, ease: "none" }, 0)
-        .fromTo("#m-right-leaf", { y: -40 }, { y: 80, ease: "none" }, 0);
 
       gsap.to(".stage-float", {
         y: -12,
@@ -151,9 +140,8 @@ const Menu = () => {
 
   return (
     <section id="menu" ref={sectionRef} aria-labelledby="menu-heading" onKeyDown={onKeyDown}>
-      <div className="noisy pointer-events-none" />
-      <img src="/images/slider-left-leaf.webp" alt="" id="m-left-leaf" loading="lazy" />
-      <img src="/images/slider-right-leaf.webp" alt="" id="m-right-leaf" loading="lazy" />
+      <img src="/images/slider-left-leaf.webp" alt="" id="m-left-leaf" data-speed="0.3" data-rotate="6" loading="lazy" />
+      <img src="/images/slider-right-leaf.webp" alt="" id="m-right-leaf" data-speed="-0.25" data-rotate="-8" loading="lazy" />
 
       <h2 id="menu-heading" className="sr-only">
         Cocktail Menu

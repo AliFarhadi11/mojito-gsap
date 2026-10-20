@@ -3,66 +3,42 @@ import { openingHours, socials } from "../../constants/index.js";
 import { useGSAP } from "@gsap/react";
 import { SplitText } from "gsap/SplitText";
 import gsap from "gsap";
-import { reduceMotion } from "../lib/motion";
+import { parallax, reduceMotion } from "../lib/motion";
 
 const Contact = () => {
   const footerRef = useRef(null);
 
   useGSAP(
     () => {
+      const root = footerRef.current;
+      parallax(root);
       if (reduceMotion()) return;
 
-      SplitText.create("h2", {
+      const q = gsap.utils.selector(root);
+
+      // autoSplit rebuilds this timeline outside the useGSAP scope when fonts load,
+      // so it targets elements from q() rather than selector strings
+      SplitText.create(q("h2"), {
         type: "words",
         mask: "words",
         autoSplit: true,
-        onSplit: (self) => buildIntro(self.words),
+        onSplit: (self) =>
+          gsap
+            .timeline({
+              scrollTrigger: { trigger: root, start: "top 70%" },
+              defaults: { ease: "power2.out" },
+            })
+            .from(self.words, { yPercent: 100, duration: 1, ease: "expo.out", stagger: 0.02 })
+            .from(q(".content > div"), { opacity: 0, y: 30, duration: 0.8, stagger: 0.1 }, "-=0.6"),
       });
-
-      function buildIntro(words) {
-        return gsap
-          .timeline({
-            scrollTrigger: {
-              trigger: footerRef.current,
-              start: "top center",
-            },
-            defaults: { ease: "power2.out" },
-          })
-          .from(words, {
-            yPercent: 100,
-            duration: 1,
-            ease: "expo.out",
-            stagger: 0.02,
-          })
-          .from(
-            ".content > div",
-            {
-              opacity: 0,
-              y: 30,
-              duration: 0.8,
-              stagger: 0.1,
-            },
-            "-=0.6",
-          )
-          .to(
-            "#f-right-leaf, #f-left-leaf",
-            {
-              y: -50,
-              duration: 1.2,
-              ease: "power1.inOut",
-            },
-            "<",
-          );
-      }
     },
     { scope: footerRef },
   );
 
   return (
     <footer id="contact" ref={footerRef}>
-      <div className="noisy pointer-events-none" />
-      <img src="/images/footer-right-leaf.webp" alt="" id="f-right-leaf" loading="lazy" />
-      <img src="/images/footer-left-leaf.webp" alt="" id="f-left-leaf" loading="lazy" />
+      <img src="/images/footer-right-leaf.webp" alt="" id="f-right-leaf" data-speed="0.3" data-rotate="-6" loading="lazy" />
+      <img src="/images/footer-left-leaf.webp" alt="" id="f-left-leaf" data-speed="0.4" data-rotate="8" loading="lazy" />
 
       <div className="content">
         <h2>Where to Find Us</h2>

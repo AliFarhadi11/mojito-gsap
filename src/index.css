@@ -23,15 +23,22 @@ body {
   width: 100%;
   background-color: black;
   color: white;
-  scroll-behavior: smooth;
   overflow-x: clip;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+/* one film-grain layer for the whole page: no seams between sections, and it sits on
+   its own compositor layer so scrolling never repaints it */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: url("/images/noise.webp");
+  transform: translateZ(0);
+}
 
+@media (prefers-reduced-motion: reduce) {
   *,
   ::before,
   ::after {
@@ -85,10 +92,6 @@ body {
     ul {
       @apply flex-center lg:gap-12 gap-7;
     }
-  }
-
-  .noisy {
-    @apply absolute inset-0 size-full bg-[url("/images/noise.webp")];
   }
 
   #hero {
@@ -146,6 +149,8 @@ body {
 
   video {
     @apply w-full md:h-[80%] h-1/2 absolute bottom-0 left-0 md:object-contain object-bottom object-cover;
+    /* the glass runs off the bottom of the clip; dissolve that edge so it never reads as a hard cut */
+    mask-image: linear-gradient(to bottom, #000 72%, transparent 100%);
   }
 
   #cocktails {
@@ -207,18 +212,31 @@ body {
       }
 
       .sub-content {
-        @apply md:col-span-4 space-y-5 flex flex-col justify-between;
+        @apply lg:col-span-4 space-y-8 flex flex-col justify-between;
 
-        p {
-          @apply text-lg;
+        > p {
+          @apply text-lg text-white/85;
         }
+      }
 
-        div {
-          @apply flex flex-col justify-between md:gap-2 gap-5;
+      .rating {
+        @apply flex flex-wrap items-end justify-between gap-5;
+
+        .score {
+          @apply md:text-3xl text-xl font-bold;
 
           span {
-            @apply text-yellow font-bold text-5xl;
+            @apply text-yellow text-5xl;
           }
+        }
+      }
+
+      /* overlapping customer avatars next to the score */
+      .avatars {
+        @apply flex -space-x-3;
+
+        img {
+          @apply size-11 rounded-full ring-2 ring-black;
         }
       }
     }
@@ -446,8 +464,38 @@ body {
     }
   }
 
+  #marquee {
+    @apply relative overflow-hidden md:py-20 py-14 space-y-4 border-y border-white/10 select-none;
+
+    .marquee-row {
+      @apply overflow-hidden;
+    }
+
+    .marquee-track {
+      @apply flex w-max will-change-transform;
+    }
+
+    .marquee-group {
+      @apply flex shrink-0 items-center;
+    }
+
+    .marquee-item {
+      @apply flex items-center font-modern-negra md:text-8xl text-5xl leading-tight text-white whitespace-nowrap;
+    }
+
+    .is-outline .marquee-item {
+      @apply text-transparent;
+      -webkit-text-stroke: 1px rgb(231 211 147 / 0.7);
+    }
+
+    /* the demo font has no ornament glyphs, so the separator is a small rotated square */
+    .marquee-dot {
+      @apply inline-block md:size-3 size-2 rotate-45 bg-yellow md:mx-12 mx-6;
+    }
+  }
+
   #contact {
-    @apply relative md:mt-20 mt-0 px-4 py-20 text-center w-full overflow-hidden;
+    @apply relative px-4 text-center w-full overflow-hidden;
     /* same warm light as the Art and Menu sections */
     background: radial-gradient(ellipse 55% 45% at 50% 35%, rgb(231 211 147 / 0.09), transparent 75%);
 
@@ -460,7 +508,8 @@ body {
     }
 
     .content {
-      @apply relative container mx-auto lg:py-14 2xl:py-32 py-16 flex flex-col justify-between gap-10 min-h-dvh;
+      /* exactly one screen tall, with top room for the fixed nav, so the whole footer fits at the end of the page */
+      @apply relative container mx-auto md:pt-32 pt-36 md:pb-16 pb-12 flex flex-col justify-between gap-10 min-h-dvh;
 
       h2 {
         @apply lg:text-6xl 2xl:text-8xl text-5xl font-modern-negra md:translate-y-0 translate-y-5;

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import { cocktailLists, mockTailLists } from "../../constants";
 import gsap from "gsap";
-import { reduceMotion } from "../lib/motion";
+import { parallax, reduceMotion } from "../lib/motion";
 
 const DrinkList = ({ title, className, items }) => (
   <div className={className}>
@@ -29,20 +29,8 @@ const Cocktails = () => {
 
   useGSAP(
     () => {
+      parallax(sectionRef.current);
       if (reduceMotion()) return;
-
-      // both leaves drift in together over the whole section
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 30%",
-            end: "bottom 80%",
-            scrub: true,
-          },
-        })
-        .from("#c-left-leaf", { x: -100, y: 100 }, 0)
-        .from("#c-right-leaf", { x: 100, y: 100 }, 0);
 
       gsap.from(".list h2, .list li", {
         opacity: 0,
@@ -60,9 +48,9 @@ const Cocktails = () => {
   );
 
   return (
-    <section id="cocktails" ref={sectionRef} className="noisy">
-      <img src="/images/cocktail-left-leaf.webp" alt="" id="c-left-leaf" loading="lazy" />
-      <img src="/images/cocktail-right-leaf.webp" alt="" id="c-right-leaf" loading="lazy" />
+    <section id="cocktails" ref={sectionRef}>
+      <img src="/images/cocktail-left-leaf.webp" alt="" id="c-left-leaf" data-speed="0.35" data-rotate="10" />
+      <img src="/images/cocktail-right-leaf.webp" alt="" id="c-right-leaf" data-speed="0.25" data-rotate="-10" />
 
       <div className="list">
         <DrinkList title="Most popular cocktails:" className="popular" items={cocktailLists} />
